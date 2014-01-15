@@ -96,11 +96,11 @@ ofxAudioDeviceControl::setVolume(float volume)
 		return;
 	}
 
-	Boolean canSetVolume = NO;
+	Boolean canSetVolume = false; //NO
 	
 	status = AudioHardwareServiceIsPropertySettable(outputDeviceID, &propertyAOPA, &canSetVolume);
 	
-	if (status || canSetVolume == NO)
+	if (status || canSetVolume == false) //NO
 	{
     std::cout << "Device " << outputDeviceID << " does not support volume control" << std::endl;
 		return;
@@ -134,7 +134,7 @@ ofxAudioDeviceControl::setVolume(float volume)
 			return;
 		}
 		
-		Boolean canSetMute = NO;
+		Boolean canSetMute = false; //NO
 		
 		status = AudioHardwareServiceIsPropertySettable(outputDeviceID, &propertyAOPA, &canSetMute);
 		

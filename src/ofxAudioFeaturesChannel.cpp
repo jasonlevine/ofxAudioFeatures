@@ -1,4 +1,4 @@
-/*
+  /*
  * Copyright Paul Reimer, 2012
  *
  * This work is licensed under the Creative Commons Attribution-NonCommercial 3.0 Unported License.
@@ -13,11 +13,8 @@
 #include <float.h>
 #include <cmath>
 
-#ifndef MIN
-  #define MIN(x,y) (((x) < (y)) ? (x) : (y))
-#endif
-
-#include <aubio/onset/peakpicker.h>
+//#include <aubio/onset/peakpicker.h>
+#include "../libs/aubio/include/aubio/onset/peakpicker.h"
 
 struct _aubio_onset_t
 {
@@ -41,9 +38,9 @@ struct _aubio_onset_t
 ofxAudioFeaturesChannel::ofxAudioFeaturesChannel()
 : calibrateMic(false)
 , calibratedMic(false)
-, usingOnsets(true)
-, usingPitch(false)
-, usingPhaseVocoderSpectrum(false)
+, usingOnsets(false)
+, usingPitch(true)
+//, usingPhaseVocoderSpectrum(false)
 , fftProcessor(NULL)
 , onsetProcessor(NULL)
 , pitchProcessor(NULL)
@@ -55,9 +52,9 @@ ofxAudioFeaturesChannel::ofxAudioFeaturesChannel()
 //, transientSteadyStateSeparationProcessor(NULL)
 //, transientOutputBuffer(NULL)
 //, steadyStateOutputBuffer(NULL)
-//, usingTransientSteadyStateSeparation(false)
+//, usingTransientSteadyStateSeparation(true)
 //, usingPhaseVocoderSpectrum(true)
-//, hopIdx(0)
+, hopIdx(0)
 , sampleRate(0.)
 , spectrumSize(0)
 , bufferSize(0)
@@ -83,24 +80,30 @@ ofxAudioFeaturesChannel::setup(size_t _bufferSize, size_t _hopSize, float _sampl
   synthesizedOutputBuffer = new_fvec(bufferSize);
   
   fftComplexOutputBuffer  = new_cvec(bufferSize);
-//  fftInputBuffer          = new_fvec(bufferSize);
+  fftInputBuffer          = new_fvec(bufferSize);
   fftProcessor            = new_aubio_fft(bufferSize);
 
   onsetOutputBuffer       = new_fvec(1);
   onsetProcessor          = new_aubio_onset("mkl", bufferSize, hopSize, sampleRate);
 
   pitchOutputBuffer       = new_fvec(1);
-  pitchProcessor          = new_aubio_pitch("yin", bufferSize, hopSize, sampleRate);
-  aubio_pitch_set_unit(pitchProcessor, "bin");
+  pitchProcessor          = new_aubio_pitch("yinfft", bufferSize, hopSize, sampleRate);
+  aubio_pitch_set_unit(pitchProcessor, "midi");
 
 //  transientOutputBuffer   = new_cvec(bufferSize);
 //  steadyStateOutputBuffer = new_cvec(bufferSize);
+//  stead    = new_fvec (hopSize); // output buffer
+//  trans    = new_fvec (hopSize); // output buffer
+//  pvt = new_aubio_pvoc(bufferSize,hopSize);
+//  pvs = new_aubio_pvoc(bufferSize,hopSize);
 //  transientSteadyStateSeparationProcessor = new_aubio_tss(bufferSize, hopSize);
+//
+    usingTransientSteadyStateSeparation = false;
 
 	inputBuffer.resize(bufferSize);
-/*
-  spectralFeatureProcessor["energy"]    = new_aubio_specdesc("energy",    hopSize);
-  spectralFeatureProcessor["hfc"]       = new_aubio_specdesc("hfc",       hopSize);
+
+//  spectralFeatureProcessor["energy"]    = new_aubio_specdesc("energy",    hopSize);
+//  spectralFeatureProcessor["hfc"]       = new_aubio_specdesc("hfc",       hopSize);
 //  spectralFeatureProcessor["complex"]   = new_aubio_specdesc("complex",   hopSize);
 //  spectralFeatureProcessor["phase"]     = new_aubio_specdesc("phase",     hopSize);
 //  spectralFeatureProcessor["specdiff"]  = new_aubio_specdesc("specdiff",  hopSize);
@@ -111,10 +114,15 @@ ofxAudioFeaturesChannel::setup(size_t _bufferSize, size_t _hopSize, float _sampl
   spectralFeatureProcessor["spread"]    = new_aubio_specdesc("spread",    hopSize);
   spectralFeatureProcessor["skewness"]  = new_aubio_specdesc("skewness",  hopSize);
   spectralFeatureProcessor["kurtosis"]  = new_aubio_specdesc("kurtosis",  hopSize);
-  spectralFeatureProcessor["slope"]     = new_aubio_specdesc("slope",     hopSize);
-  spectralFeatureProcessor["decrease"]  = new_aubio_specdesc("decrease",  hopSize);
-  spectralFeatureProcessor["rolloff"]   = new_aubio_specdesc("rolloff",   hopSize);
-*/
+//  spectralFeatureProcessor["slope"]     = new_aubio_specdesc("slope",     hopSize);
+//  spectralFeatureProcessor["decrease"]  = new_aubio_specdesc("decrease",  hopSize);
+//  spectralFeatureProcessor["rolloff"]   = new_aubio_specdesc("rolloff",   hopSize);
+
+    usingFeatures.push_back("centroid");
+    usingFeatures.push_back("spread");
+    usingFeatures.push_back("skewness");
+    usingFeatures.push_back("kurtosis");
+    
   for (size_t i=0; i<usingFeatures.size(); ++i)
   {
     const std::string& featureName(usingFeatures[i]);
@@ -183,25 +191,25 @@ ofxAudioFeaturesChannel::destroy()
     del_fvec(pitchOutputBuffer);
     pitchOutputBuffer = NULL;
   }
-/*
-  if (transientSteadyStateSeparationProcessor)
-  {
-    del_aubio_tss(transientSteadyStateSeparationProcessor);
-    transientSteadyStateSeparationProcessor = NULL;
-  }
 
-  if (transientOutputBuffer)
-  {
-    del_cvec(transientOutputBuffer);
-    transientOutputBuffer = NULL;
-  }
-  
-  if (steadyStateOutputBuffer)
-  {
-    del_cvec(steadyStateOutputBuffer);
-    steadyStateOutputBuffer = NULL;
-  }
-*/
+//  if (transientSteadyStateSeparationProcessor)
+//  {
+//    del_aubio_tss(transientSteadyStateSeparationProcessor);
+//    transientSteadyStateSeparationProcessor = NULL;
+//  }
+//
+//  if (transientOutputBuffer)
+//  {
+//    del_cvec(transientOutputBuffer);
+//    transientOutputBuffer = NULL;
+//  }
+//  
+//  if (steadyStateOutputBuffer)
+//  {
+//    del_cvec(steadyStateOutputBuffer);
+//    steadyStateOutputBuffer = NULL;
+//  }
+
   for (std::map<std::string, aubio_specdesc_t*>::iterator spectralFeatureProcessorIter = spectralFeatureProcessor.begin();
        spectralFeatureProcessorIter != spectralFeatureProcessor.end(); ++spectralFeatureProcessorIter)
     del_aubio_specdesc(spectralFeatureProcessorIter->second);
@@ -222,10 +230,10 @@ ofxAudioFeaturesChannel::process(const float now/*,
 	for (unsigned int i=0; i<hopSize; ++i)
   {
 		currentHopBuffer->data[i] = inputBuffer[i];
-//    fftInputBuffer->data[i + (hopIdx*hopSize)] =  inputBuffer[i];
+        fftInputBuffer->data[i + (hopIdx*hopSize)] =  inputBuffer[i];
   }
 
-/*
+
   // process hop
   hopIdx++;
   if (!usingPhaseVocoderSpectrum)
@@ -236,21 +244,23 @@ ofxAudioFeaturesChannel::process(const float now/*,
       aubio_fft_do(fftProcessor, fftInputBuffer, fftComplexOutputBuffer);
     }
   }
-*/
+
   if (usingOnsets || usingPhaseVocoderSpectrum)
     aubio_onset_do(onsetProcessor, currentHopBuffer, onsetOutputBuffer);
 
   if (usingPitch)
     aubio_pitch_do(pitchProcessor, currentHopBuffer, pitchOutputBuffer);
-/*
-  if (usingTransientSteadyStateSeparation)
-  {
-    if (usingPhaseVocoderSpectrum)
-      aubio_tss_do(transientSteadyStateSeparationProcessor, onsetProcessor->fftgrain, transientOutputBuffer, steadyStateOutputBuffer);
-    else
-      aubio_tss_do(transientSteadyStateSeparationProcessor, fftComplexOutputBuffer, transientOutputBuffer, steadyStateOutputBuffer);
-  }
-*/
+
+//  if (usingTransientSteadyStateSeparation)
+//  {
+//    if (usingPhaseVocoderSpectrum)
+//      aubio_tss_do(transientSteadyStateSeparationProcessor, onsetProcessor->fftgrain, transientOutputBuffer, steadyStateOutputBuffer);
+//    else
+//      aubio_tss_do(transientSteadyStateSeparationProcessor, fftComplexOutputBuffer, transientOutputBuffer, steadyStateOutputBuffer);
+//      aubio_pvoc_rdo (pvt, steadyStateOutputBuffer, stead);
+//      aubio_pvoc_rdo (pvs, transientOutputBuffer, trans);
+//  }
+
   for (std::map<std::string, aubio_specdesc_t*>::iterator spectralFeatureProcessorIter = spectralFeatureProcessor.begin();
        spectralFeatureProcessorIter != spectralFeatureProcessor.end(); ++spectralFeatureProcessorIter)
   {
@@ -338,7 +348,7 @@ ofxAudioFeaturesChannel::updateSmoothedSpectrum(std::vector<float>& smoothedSpec
   float adjustedDecay = powf(decay, (float)hopSize / (float)bufferSize);
 
   // spectrum smoothing
-  for (unsigned int i=0; i<MIN(spectrum.size(), smoothedSpectrum.size()); ++i)
+  for (unsigned int i=0; i<spectrum.size(); ++i)
   {
     if (spectrum[i] > smoothedSpectrum[i])
       smoothedSpectrum[i] = lerp(spectrum[i], smoothedSpectrum[i], adjustedAttack);
@@ -378,7 +388,7 @@ ofxAudioFeaturesChannel::updateSmoothedSpectrum(std::vector<float>& smoothedSpec
 //  float adjustedDecayOffset = powf(decayOffset, (float)hopSize / (float)bufferSize);
 
   // spectrum smoothing
-  for (unsigned int i=0; i<MIN(spectrum.size(), smoothedSpectrum.size()); ++i)
+  for (unsigned int i=0; i<spectrum.size(); ++i)
   {
     float attack = clamp(attackOffset + attackMult*clamp(attackCoeffs[i], 0.0, 1.0), 0.0, 0.9999);
     float decay = clamp(decayOffset + decayMult*clamp(decayCoeffs[i], 0.0, 1.0), 0.0, 0.9999);

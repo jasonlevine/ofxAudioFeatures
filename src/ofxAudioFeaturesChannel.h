@@ -10,7 +10,8 @@
 
 #pragma once
 
-#include <aubio/aubio.h>
+#include "../libs/aubio/include/aubio/aubio.h"
+//#include <aubio/aubio.h>
 
 #include <vector>
 #include <deque>
@@ -68,12 +69,25 @@ public:
   aubio_onset_t* onsetProcessor;
   aubio_pitch_t* pitchProcessor;
   std::map<std::string, aubio_specdesc_t*> spectralFeatureProcessor;
+    
+    aubio_tss_t* transientSteadyStateSeparationProcessor;
+    cvec_t* transientOutputBuffer;
+    cvec_t* steadyStateOutputBuffer;
+    fvec_t * stead; // output buffer
+    fvec_t * trans; // output buffer
+    aubio_pvoc_t * pvt;
+    aubio_pvoc_t * pvs;
+    bool usingTransientSteadyStateSeparation;
+    
+    uint_t hopIdx;
 
 protected:
   fvec_t* currentHopBuffer;
   fvec_t* synthesizedOutputBuffer;
 
+    
   cvec_t* fftComplexOutputBuffer;
+  fvec_t* fftInputBuffer;
   fvec_t* onsetOutputBuffer;
   fvec_t* pitchOutputBuffer;
 
